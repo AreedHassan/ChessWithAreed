@@ -119,7 +119,9 @@
     .areed-card-inner {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
+      width: 100%;
+      min-width: 0;
     }
     .areed-avatar {
       width: 56px; height: 56px;
@@ -161,8 +163,9 @@
     .areed-status.offline { color: rgba(242,242,247,0.35); }
     .areed-stats {
       display: flex;
-      gap: 20px;
+      gap: 12px;
       margin-top: 12px;
+      flex-shrink: 0;
     }
     .areed-stat { text-align: center; }
     .areed-stat-val {
@@ -421,34 +424,37 @@
     /* ── Bottom nav capsule ── */
     .bottom-nav {
       position: fixed;
-      bottom: 20px; left: 50%; transform: translateX(-50%);
+      bottom: 16px; left: 50%; transform: translateX(-50%);
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 8px 12px;
-      background: rgba(20,20,20,0.85);
+      gap: 2px;
+      padding: 6px 8px;
+      background: rgba(20,20,20,0.9);
       border: 1px solid var(--glass-border);
       border-radius: 100px;
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       z-index: 99;
+      width: auto;
+      max-width: 220px;
     }
     .nav-tab {
       display: flex; flex-direction: column; align-items: center;
       gap: 2px;
-      padding: 6px 14px;
+      padding: 6px 16px;
       border-radius: 100px;
       text-decoration: none;
       cursor: pointer;
       transition: background 0.2s;
       border: none;
       background: none;
+      white-space: nowrap;
     }
     .nav-tab:hover { background: rgba(255,255,255,0.06); }
     .nav-tab.active { background: rgba(201,168,76,0.15); }
-    .nav-tab-icon { font-size: 1rem; }
+    .nav-tab-icon { font-size: 0.95rem; }
     .nav-tab-label {
-      font-size: 0.6rem;
+      font-size: 0.58rem;
       font-weight: 500;
       letter-spacing: 0.04em;
       text-transform: uppercase;
