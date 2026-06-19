@@ -107,6 +107,16 @@
     .spectator-notice { width: 100%; max-width: 500px; padding: 10px 16px; text-align: center; font-size: 13px; color: rgba(242,242,247,0.35); display: none; }
     .spectator-notice.show { display: flex; align-items: center; justify-content: center; gap: 7px; }
 
+    /* Areed watching notice */
+    .areed-watch-notice {
+      width: 100%; max-width: 500px; padding: 11px 16px;
+      display: none; align-items: center; justify-content: center; gap: 8px;
+      font-size: 13px; color: var(--gold);
+      border-color: rgba(201,168,76,0.2); background: rgba(201,168,76,0.05);
+    }
+    .areed-watch-notice.show { display: flex; }
+    .sf-icon { font-size: 16px; }
+
     /* Result card */
     .result-card { width: 100%; max-width: 500px; padding: 30px 24px; text-align: center; display: none; }
     .result-card.show { display: block; }
@@ -278,6 +288,12 @@
 
   <!-- Spectator notice -->
   <div class="lg spectator-notice" id="spectator-notice">👁 Spectating — moves update live</div>
+
+  <!-- Areed watching Stockfish play -->
+  <div class="lg areed-watch-notice" id="areed-watch-notice">
+    <span class="sf-icon">♟</span>
+    Stockfish is playing for you — watch the board
+  </div>
 
   <!-- Move log -->
   <div class="section-label">Moves</div>
@@ -594,6 +610,7 @@ function showResult(title, sub) {
   document.getElementById('result-card').classList.add('show');
   document.getElementById('live-pill').style.display = 'none';
   document.getElementById('ended-pill').style.display = 'block';
+  document.getElementById('areed-watch-notice').classList.remove('show');
   updateStatusBanner('finished');
 }
 
@@ -680,6 +697,7 @@ async function acceptChallenge() {
   updateStatusBanner('active');
   document.getElementById('pending-challenger-row').style.display = 'none';
   toast('Game started! Stockfish is playing as you.');
+  document.getElementById('areed-watch-notice').classList.add('show');
   // Now trigger Stockfish since Areed is white and goes first
   if (chess.turn() === 'w') setTimeout(triggerStockfish, 1000);
 }
@@ -746,6 +764,7 @@ async function onGameUpdate(prevStatus) {
     }
     // Areed: Stockfish kicks off
     if (isAreed && chess.turn() === 'w' && !chess.game_over()) {
+      document.getElementById('areed-watch-notice').classList.add('show');
       setTimeout(triggerStockfish, 1000);
     }
     // Reload moves
@@ -840,6 +859,11 @@ async function boot() {
     // Areed panel: show pending row if someone is waiting
     if (isAreed && game.status === 'pending' && game.challenger_id) {
       document.getElementById('pending-challenger-row').style.display = 'block';
+    }
+
+    // Show Areed's live-view notice when game is active
+    if (isAreed && game.status === 'active') {
+      document.getElementById('areed-watch-notice').classList.add('show');
     }
 
     // Update invite link in panel (for Areed)
