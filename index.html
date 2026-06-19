@@ -181,11 +181,12 @@
       height: 100%;
       object-fit: cover;
       object-position: center center;
-      opacity: 0.55;
+      opacity: 0.75;
     }
     @media (max-width: 767px) {
       .hero-video {
         object-position: 60% center;
+        opacity: 0.7;
       }
     }
     .hero-fade {
@@ -630,9 +631,9 @@
 
   <!-- ══════════════ HERO ══════════════ -->
   <div class="hero">
-    <!-- High quality 4K chess video from Pexels -->
-    <video class="hero-video" autoplay muted loop playsinline>
-      <source src="https://uhudixnuzqxpnipwolhi.supabase.co/storage/v1/object/public/assets/hero.mp4" type="video/mp4" />
+    <video class="hero-video" autoplay muted loop playsinline preload="auto"
+      poster="https://images.pexels.com/videos/31270356/naturaleza-bosques-arboles-montanas-vientos-nubes-colombia-31270356.jpeg?auto=compress&cs=tinysrgb&h=627&fit=crop&w=1200">
+      <source src="https://videos.pexels.com/video-files/31270356/13354315_2560_1440_30fps.mp4" type="video/mp4" />
     </video>
     <div class="hero-fade"></div>
 
