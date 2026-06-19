@@ -424,43 +424,42 @@
     /* ── Bottom nav capsule ── */
     .bottom-nav {
       position: fixed;
-      bottom: 16px; left: 50%; transform: translateX(-50%);
+      bottom: 20px; left: 50%; transform: translateX(-50%);
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 4px;
       padding: 6px 8px;
-      background: rgba(20,20,20,0.9);
-      border: 1px solid var(--glass-border);
+      background: rgba(14,14,14,0.92);
+      border: 1px solid rgba(255,255,255,0.09);
       border-radius: 100px;
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
       z-index: 99;
-      width: auto;
-      max-width: 220px;
+      white-space: nowrap;
     }
     .nav-tab {
-      display: flex; flex-direction: column; align-items: center;
-      gap: 2px;
-      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
       border-radius: 100px;
       text-decoration: none;
       cursor: pointer;
       transition: background 0.2s;
       border: none;
       background: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: rgba(242,242,247,0.4);
       white-space: nowrap;
     }
-    .nav-tab:hover { background: rgba(255,255,255,0.06); }
-    .nav-tab.active { background: rgba(201,168,76,0.15); }
-    .nav-tab-icon { font-size: 0.95rem; }
-    .nav-tab-label {
-      font-size: 0.58rem;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: rgba(242,242,247,0.4);
+    .nav-tab:hover { color: var(--white); }
+    .nav-tab.active {
+      background: rgba(255,255,255,0.09);
+      color: var(--white);
     }
-    .nav-tab.active .nav-tab-label { color: var(--gold); }
+    .nav-tab-icon { font-size: 0.85rem; line-height: 1; }
   </style>
 </head>
 <body>
@@ -544,18 +543,10 @@
 
 <!-- Bottom nav -->
 <nav class="bottom-nav">
-  <a href="index.html" class="nav-tab">
-    <span class="nav-tab-icon">🏠</span>
-    <span class="nav-tab-label">Home</span>
-  </a>
-  <button class="nav-tab active">
-    <span class="nav-tab-icon">⚔️</span>
-    <span class="nav-tab-label">Lobby</span>
-  </button>
-  <a href="game.html" class="nav-tab" id="nav-game" style="display:none">
-    <span class="nav-tab-icon">♟️</span>
-    <span class="nav-tab-label">Game</span>
-  </a>
+  <a href="index.html" class="nav-tab">Home</a>
+  <a href="lobby.html" class="nav-tab active">Lobby</a>
+  <a href="game.html" class="nav-tab" id="nav-game" style="display:none">Game</a>
+  <a href="dashboard.html" class="nav-tab" id="nav-dashboard" style="display:none">Dashboard</a>
 </nav>
 
 <div id="toast"></div>
@@ -616,6 +607,10 @@
     }
     document.getElementById('nav-username').textContent = currentProfile.username;
     document.getElementById('nav-avatar').textContent = '♔';
+    if (currentProfile.username.toLowerCase() === 'areed') {
+      const dashLink = document.getElementById('nav-dashboard');
+      if (dashLink) dashLink.style.display = 'flex';
+    }
   }
 
   // ── Areed status ──
