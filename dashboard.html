@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChessWithAreed — Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --black: #080808; --white: #F2F2F7; --gold: #C9A84C;
+      --gold-dim: rgba(201,168,76,0.12); --glass: rgba(255,255,255,0.04);
+      --glass-border: rgba(255,255,255,0.08); --radius: 16px;
+      --green: #52C97A; --red: #E05252;
+    }
+    html, body { height: 100%; background: var(--black); color: var(--white); font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+    .bg-gradient {
+      position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201,168,76,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .lg { background: var(--glass); border: 1px solid var(--glass-border); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: var(--radius); }
+    .lg-strong { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); border-radius: var(--radius); }
+
+    /* Gate */
+    #gate { position: fixed; inset: 0; z-index: 200; background: var(--black); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; transition: opacity 0.5s; }
+    #gate.fade-out { opacity: 0; pointer-events: none; }
+    .gate-logo { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 28px; color: var(--gold); }
+    .gate-msg { font-size: 14px; color: rgba(242,242,247,0.4); }
+    .gate-spinner { width: 28px; height: 28px; border: 2px solid rgba(201,168,76,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Access denied */
+    #access-denied { display: none; position: fixed; inset: 0; z-index: 200; background: var(--black); flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 40px; }
+    #access-denied.show { display: flex; }
+    .denied-title { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 32px; }
+    .denied-sub { font-size: 14px; color: rgba(242,242,247,0.4); }
+    .btn-back { margin-top: 8px; padding: 12px 28px; border-radius: 50px; background: var(--gold); color: #080808; font-size: 14px; font-weight: 600; text-decoration: none; display: inline-block; }
+
+    /* Page */
+    .page { position: relative; z-index: 1; min-height: 100vh; display: none; flex-direction: column; align-items: center; padding: 28px 16px 110px; gap: 20px; }
+    .page.show { display: flex; }
+
+    /* Header */
+    .dash-header { width: 100%; max-width: 520px; }
+    .dash-eyebrow { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+    .dash-title { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 38px; line-height: 1.1; }
+    .dash-sub { font-size: 13px; color: rgba(242,242,247,0.35); margin-top: 6px; }
+
+    /* Status toggle */
+    .toggle-row { width: 100%; max-width: 520px; display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; }
+    .toggle-text-label { font-size: 14px; font-weight: 500; }
+    .toggle-sub { font-size: 12px; color: rgba(242,242,247,0.35); margin-top: 2px; }
+    .switch { position: relative; width: 48px; height: 28px; cursor: pointer; }
+    .switch input { display: none; }
+    .track { position: absolute; inset: 0; border-radius: 20px; background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s; }
+    .switch input:checked + .track { background: rgba(82,201,122,0.2); border-color: rgba(82,201,122,0.35); }
+    .thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: rgba(242,242,247,0.35); transition: all 0.3s; }
+    .switch input:checked ~ .thumb { transform: translateX(20px); background: var(--green); }
+
+    /* Section label */
+    .section-label { width: 100%; max-width: 520px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(242,242,247,0.28); padding: 0 2px; display: flex; align-items: center; gap: 8px; }
+    .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--gold); color: #080808; font-size: 9px; font-weight: 700; }
+
+    /* Stats */
+    .stats-row { width: 100%; max-width: 520px; display: flex; gap: 10px; }
+    .stat-card { flex: 1; padding: 16px 12px; text-align: center; }
+    .stat-num { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 34px; color: var(--gold); line-height: 1; }
+    .stat-lbl { font-size: 11px; color: rgba(242,242,247,0.32); letter-spacing: 0.05em; text-transform: uppercase; margin-top: 4px; }
+
+    /* Invite card */
+    .invite-card { width: 100%; max-width: 520px; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+    .invite-card-title { font-size: 13px; font-weight: 500; color: var(--white); }
+    .invite-card-sub { font-size: 12px; color: rgba(242,242,247,0.35); }
+    .invite-row { display: flex; gap: 8px; }
+    .invite-box { flex: 1; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); font-size: 12px; color: rgba(242,242,247,0.4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'Inter', monospace; }
+    .btn-copy { padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(201,168,76,0.25); background: var(--gold-dim); color: var(--gold); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+    .btn-copy:hover { background: rgba(201,168,76,0.2); }
+    .btn-copy.copied { background: rgba(82,201,122,0.12); border-color: rgba(82,201,122,0.28); color: var(--green); }
+    .btn-new-invite { padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: rgba(242,242,247,0.45); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn-new-invite:hover { color: var(--white); border-color: rgba(255,255,255,0.15); }
+
+    /* Challenge card */
+    .challenge-card { width: 100%; max-width: 520px; padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 12px; animation: slideIn 0.35s ease; }
+    @keyframes slideIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: none; } }
+    .challenge-top { display: flex; align-items: center; gap: 12px; }
+    .ch-avatar { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .ch-name { font-size: 15px; font-weight: 500; }
+    .ch-time { font-size: 12px; color: rgba(242,242,247,0.35); margin-top: 2px; }
+    .ch-actions { display: flex; gap: 9px; }
+    .btn-accept { flex: 1; padding: 11px; border-radius: 11px; border: 1px solid rgba(82,201,122,0.28); background: rgba(82,201,122,0.1); color: var(--green); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-accept:hover { background: rgba(82,201,122,0.18); }
+    .btn-decline { flex: 1; padding: 11px; border-radius: 11px; border: 1px solid rgba(224,82,82,0.2); background: rgba(224,82,82,0.08); color: var(--red); font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .btn-decline:hover { background: rgba(224,82,82,0.16); }
+    .btn-view { width: 100%; padding: 11px; border-radius: 11px; border: 1px solid rgba(201,168,76,0.25); background: var(--gold-dim); color: var(--gold); font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; display: block; transition: background 0.2s; }
+    .btn-view:hover { background: rgba(201,168,76,0.2); }
+
+    /* Active game */
+    .active-card { width: 100%; max-width: 520px; padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .active-tag { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--gold); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+    .active-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: blink 1.4s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .active-vs { font-size: 16px; font-weight: 500; }
+    .active-since { font-size: 12px; color: rgba(242,242,247,0.35); }
+
+    /* Empty */
+    .empty { width: 100%; max-width: 520px; padding: 28px 24px; text-align: center; font-size: 14px; color: rgba(242,242,247,0.22); }
+
+    /* History */
+    .history-wrap { width: 100%; max-width: 520px; }
+    .history-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .history-row:last-child { border-bottom: none; }
+    .h-name { font-size: 14px; }
+    .h-date { font-size: 12px; color: rgba(242,242,247,0.32); margin-top: 2px; }
+    .h-badge { font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 8px; }
+    .win  { background: rgba(82,201,122,0.1);   color: var(--green); border: 1px solid rgba(82,201,122,0.22); }
+    .loss { background: rgba(224,82,82,0.08);    color: var(--red);   border: 1px solid rgba(224,82,82,0.18); }
+    .draw { background: rgba(255,255,255,0.05);  color: rgba(242,242,247,0.45); border: 1px solid rgba(255,255,255,0.1); }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%) translateY(10px); background: rgba(28,28,28,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 11px 20px; font-size: 13px; color: var(--white); opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 300; white-space: nowrap; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Nav */
+    .nav-capsule { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 50px; background: rgba(14,14,14,0.92); border: 1px solid rgba(255,255,255,0.09); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); }
+    .nav-btn { padding: 8px 16px; border-radius: 40px; font-size: 13px; font-weight: 500; color: rgba(242,242,247,0.45); text-decoration: none; background: transparent; border: none; cursor: pointer; transition: all 0.2s; }
+    .nav-btn:hover { color: var(--white); }
+    .nav-btn.active { background: rgba(255,255,255,0.09); color: var(--white); }
+  </style>
+</head>
+<body>
+<div class="bg-gradient"></div>
+
+<div id="gate">
+  <div class="gate-logo">ChessWithAreed</div>
+  <div class="gate-spinner"></div>
+  <div class="gate-msg" id="gate-msg">Loading…</div>
+</div>
+
+<div id="access-denied">
+  <div class="denied-title">Access denied.</div>
+  <div class="denied-sub">This dashboard belongs to Areed only.</div>
+  <a href="lobby.html" class="btn-back">Back to Lobby</a>
+</div>
+
+<div class="page" id="dash">
+
+  <div class="dash-header">
+    <div class="dash-eyebrow">Command Center</div>
+    <div class="dash-title">Dashboard</div>
+    <div class="dash-sub">Manage your games and challenges</div>
+  </div>
+
+  <!-- Online toggle -->
+  <div class="lg toggle-row">
+    <div>
+      <div class="toggle-text-label">Available to play</div>
+      <div class="toggle-sub" id="toggle-sub">Set your status</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="online-toggle" onchange="setOnlineStatus(this.checked)" />
+      <div class="track"></div>
+      <div class="thumb"></div>
+    </label>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="lg stat-card"><div class="stat-num" id="s-total">—</div><div class="stat-lbl">Played</div></div>
+    <div class="lg stat-card"><div class="stat-num" id="s-wins">—</div><div class="stat-lbl">Wins</div></div>
+    <div class="lg stat-card"><div class="stat-num" id="s-pending">—</div><div class="stat-lbl">Pending</div></div>
+  </div>
+
+  <!-- Invite link generator -->
+  <div class="section-label">Invite Link</div>
+  <div class="lg invite-card">
+    <div>
+      <div class="invite-card-title">Send a private invite</div>
+      <div class="invite-card-sub">Share this link — anyone who opens it and signs in will be matched with you</div>
+    </div>
+    <div class="invite-row">
+      <div class="invite-box" id="invite-box">Generating…</div>
+      <button class="btn-copy" id="copy-btn" onclick="copyInvite()">Copy</button>
+    </div>
+    <button class="btn-new-invite" onclick="newInvite()">↻ New link</button>
+  </div>
+
+  <!-- Active game -->
+  <div class="section-label">Active Game</div>
+  <div id="active-section"></div>
+
+  <!-- Pending challenges -->
+  <div class="section-label">Pending Challenges <span class="badge" id="pending-badge" style="display:none;"></span></div>
+  <div id="challenges-section" style="width:100%;max-width:520px;display:flex;flex-direction:column;gap:12px;"></div>
+
+  <!-- History -->
+  <div class="section-label">Match History</div>
+  <div class="lg history-wrap" id="history-section"></div>
+
+</div>
+
+<div id="toast"></div>
+
+<nav class="nav-capsule">
+  <a href="lobby.html" class="nav-btn">Lobby</a>
+  <span class="nav-btn active">Dashboard</span>
+  <a href="game.html" class="nav-btn">Board</a>
+</nav>
+
+<script>
+const SUPABASE_URL = 'https://uhudixnuzqxpnipwolhi.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVodWRpeG51enF4cG5pcHdvbGhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NDkyODMsImV4cCI6MjA5NzMyNTI4M30.deyt_3BIn8u1ktmF66fQ_9voWFzdcidU20YyxhjRjUs';
+const SITE_URL     = 'https://chesswithareed.vercel.app';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+let areedId = null;
+
+function toast(msg, dur = 2800) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function hideGate() {
+  const g = document.getElementById('gate');
+  g.classList.add('fade-out');
+  setTimeout(() => g.style.display = 'none', 500);
+}
+function showDeny() {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('access-denied').classList.add('show');
+}
+
+function timeAgo(iso) {
+  const d = Math.floor((Date.now() - new Date(iso)) / 60000);
+  if (d < 1) return 'just now';
+  if (d < 60) return d + 'm ago';
+  if (d < 1440) return Math.floor(d/60) + 'h ago';
+  return Math.floor(d/1440) + 'd ago';
+}
+
+// ── Online status ──────────────────────────────────────────
+async function setOnlineStatus(on) {
+  localStorage.setItem('areed_online', on ? '1' : '0');
+  document.getElementById('toggle-sub').textContent = on
+    ? 'Challengers can see you online' : 'You appear offline';
+
+  // Broadcast to lobby channel
+  const ch = db.channel('areed-presence');
+  await ch.send({ type: 'broadcast', event: 'areed-status', payload: { online: on } });
+  toast(on ? 'You\'re now online ♟' : 'You\'re now offline');
+}
+
+// ── Invite link ────────────────────────────────────────────
+async function getOrCreateOpenInvite() {
+  // Look for a pending game with no challenger
+  const { data: existing } = await db
+    .from('games').select('*').eq('status', 'pending').is('challenger_id', null)
+    .order('created_at', { ascending: false }).limit(1);
+
+  if (existing?.length) return existing[0];
+
+  const { data: created } = await db
+    .from('games').insert({ challenger_id: null, status: 'pending' }).select().single();
+  return created;
+}
+
+async function refreshInviteLink() {
+  const game = await getOrCreateOpenInvite();
+  if (!game) return;
+  const link = `${SITE_URL}/game.html?id=${game.id}`;
+  document.getElementById('invite-box').textContent = link;
+  document.getElementById('invite-box').dataset.gameId = game.id;
+}
+
+async function newInvite() {
+  // Expire old open invite (mark as rejected so it clears)
+  const oldId = document.getElementById('invite-box').dataset.gameId;
+  if (oldId) await db.from('games').update({ status: 'rejected' }).eq('id', oldId).is('challenger_id', null);
+  await refreshInviteLink();
+  toast('New invite link generated');
+}
+
+function copyInvite() {
+  const link = document.getElementById('invite-box').textContent;
+  navigator.clipboard.writeText(link).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    toast('Link copied');
+  });
+}
+
+// ── Accept / Decline ──────────────────────────────────────
+async function acceptGame(gameId, btnId) {
+  const btn = document.getElementById(btnId);
+  if (btn) { btn.textContent = 'Starting…'; btn.disabled = true; }
+  await db.from('games').update({ status: 'active' }).eq('id', gameId);
+  toast('Game started!');
+  setTimeout(() => window.location.href = `game.html?id=${gameId}`, 600);
+}
+
+async function declineGame(gameId) {
+  await db.from('games').update({ status: 'rejected' }).eq('id', gameId);
+  toast('Challenge declined');
+  await loadAll();
+}
+
+// ── Render ────────────────────────────────────────────────
+async function renderChallenges(pending) {
+  const sec  = document.getElementById('challenges-section');
+  const bdg  = document.getElementById('pending-badge');
+  document.getElementById('s-pending').textContent = pending.length;
+
+  if (!pending.length) {
+    bdg.style.display = 'none';
+    sec.innerHTML = '<div class="lg empty">No pending challenges</div>';
+    return;
+  }
+
+  bdg.textContent = pending.length;
+  bdg.style.display = 'inline-flex';
+
+  const ids = pending.map(g => g.challenger_id).filter(Boolean);
+  const { data: profiles } = ids.length
+    ? await db.from('profiles').select('id, username').in('id', ids)
+    : { data: [] };
+  const pm = {};
+  profiles?.forEach(p => pm[p.id] = p.username);
+
+  sec.innerHTML = pending.map(g => {
+    const name = pm[g.challenger_id] || (g.challenger_id ? 'Unknown' : '(invite — no one joined yet)');
+    const hasChallenger = !!g.challenger_id;
+    return `
+      <div class="lg challenge-card" id="cc-${g.id}">
+        <div class="challenge-top">
+          <div class="ch-avatar">♔</div>
+          <div><div class="ch-name">${name}</div><div class="ch-time">${timeAgo(g.created_at)}</div></div>
+        </div>
+        ${hasChallenger ? `
+        <div class="ch-actions">
+          <button class="btn-accept" id="acc-${g.id}" onclick="acceptGame('${g.id}','acc-${g.id}')">Accept</button>
+          <button class="btn-decline" onclick="declineGame('${g.id}')">Decline</button>
+        </div>
+        <a class="btn-view" href="game.html?id=${g.id}">View Board</a>
+        ` : `<div style="font-size:12px;color:rgba(242,242,247,0.3);text-align:center;padding:4px 0;">Waiting for someone to open the invite link</div>`}
+      </div>`;
+  }).join('');
+}
+
+async function renderActive(active) {
+  const sec = document.getElementById('active-section');
+  if (!active) {
+    sec.innerHTML = '<div class="lg empty" style="max-width:520px;width:100%;">No active game right now</div>';
+    return;
+  }
+  const { data: p } = active.challenger_id
+    ? await db.from('profiles').select('username').eq('id', active.challenger_id).single()
+    : { data: null };
+  const name = p?.username || 'Challenger';
+  sec.innerHTML = `
+    <div class="lg-strong active-card" style="width:100%;max-width:520px;">
+      <div class="active-tag"><div class="active-dot"></div>Live Now</div>
+      <div class="active-vs">vs. ${name}</div>
+      <div class="active-since">Started ${timeAgo(active.created_at)}</div>
+      <a class="btn-view" href="game.html?id=${active.id}" style="margin-top:4px;">Enter Game →</a>
+    </div>`;
+}
+
+async function renderHistory(finished) {
+  const sec = document.getElementById('history-section');
+  if (!finished.length) {
+    sec.innerHTML = '<div class="empty">No finished games yet</div>'; return;
+  }
+  const ids = [...new Set(finished.map(g => g.challenger_id).filter(Boolean))];
+  const { data: profiles } = ids.length
+    ? await db.from('profiles').select('id,username').in('id', ids)
+    : { data: [] };
+  const pm = {};
+  profiles?.forEach(p => pm[p.id] = p.username);
+
+  sec.innerHTML = finished.slice(0, 25).map(g => {
+    const name = pm[g.challenger_id] || 'Unknown';
+    const isWin = g.winner_id === areedId;
+    const isDraw = !g.winner_id;
+    const cls  = isDraw ? 'draw' : isWin ? 'win' : 'loss';
+    const lbl  = isDraw ? 'Draw' : isWin ? 'Win' : 'Loss';
+    const date = new Date(g.finished_at || g.created_at).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+    return `<div class="history-row">
+      <div><div class="h-name">${name}</div><div class="h-date">${date}</div></div>
+      <span class="h-badge ${cls}">${lbl}</span>
+    </div>`;
+  }).join('');
+}
+
+async function loadAll() {
+  const { data: games } = await db.from('games').select('*').order('created_at', { ascending: false });
+  if (!games) return;
+
+  const finished = games.filter(g => g.status === 'finished');
+  const active   = games.find(g  => g.status === 'active') || null;
+  const pending  = games.filter(g => g.status === 'pending');
+
+  document.getElementById('s-total').textContent = finished.length;
+  document.getElementById('s-wins').textContent  = finished.filter(g => g.winner_id === areedId).length;
+
+  await renderActive(active);
+  await renderChallenges(pending);
+  await renderHistory(finished);
+}
+
+// ── Boot ──────────────────────────────────────────────────
+async function boot() {
+  const { data: { session } } = await db.auth.getSession();
+  const user = session?.user;
+  if (!user) { showDeny(); return; }
+
+  const { data: profile } = await db.from('profiles').select('id,username').eq('id', user.id).single();
+  if (!profile || profile.username.toLowerCase() !== 'areed') { showDeny(); return; }
+  areedId = user.id;
+
+  // Restore toggle
+  const isOn = localStorage.getItem('areed_online') === '1';
+  document.getElementById('online-toggle').checked = isOn;
+  document.getElementById('toggle-sub').textContent = isOn ? 'Challengers can see you online' : 'You appear offline';
+
+  // Invite link
+  await refreshInviteLink();
+
+  // Load data
+  await loadAll();
+
+  // Realtime refresh
+  db.channel('dash-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'games' }, loadAll).subscribe();
+
+  document.getElementById('dash').classList.add('show');
+  hideGate();
+}
+
+boot();
+</script>
+</body>
+</html>
